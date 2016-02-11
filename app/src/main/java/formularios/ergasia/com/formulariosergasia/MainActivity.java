@@ -6,11 +6,26 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.text.TextUtils;
+import android.widget.Toast;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -56,9 +71,9 @@ public class MainActivity extends AppCompatActivity {
                 //Setting a listener for the submit Button
                 submit.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
-                        if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true)
-                        {
+                        if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true) {
                             user.assignPhoneNumber(input.getText().toString());
+                            user.checkUserStatus();
                         }
                     }
                 });
@@ -67,23 +82,26 @@ public class MainActivity extends AppCompatActivity {
             //Wow!! We got the telephone number from the SIM card!
             else
             {
-                message.setText(numtelf);
+                //message.setText(numtelf);
+                user.assignPhoneNumber(numtelf);
+                user.checkUserStatus();
             }
         }
-        else
-        {
+        else {
             message.setText("Para que la aplicación pueda operar correctamente, debe estar conectado a Internet (vía Wifi o red de datos). " +
                     "Por favor, conéctese a Internet y reinicie la aplicación.");
         }
 
     }
 
+    //ERGASIA USER CLASS
     public class ErgasiaUser {
 
         private String phonenum;
         private int status;
         private int form;
 
+        //Assigns a phone number to the Ergasia User
         public void assignPhoneNumber(String inputnum) {
 
             if (inputnum == null) {
@@ -97,8 +115,80 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        //Retrieves the current assigned user to the Ergasia User
         public String returnPhoneNumber() {
             return phonenum;
+        }
+
+        //Checks the status of an Ergasia User
+        public void checkUserStatus() {
+
+            String resource = "http://192.168.1.40/usr/check_user.php";
+            String charset = "UTF-8";
+            String param = phonenum;
+
+            URL url;
+            HttpURLConnection conn;
+            InputStream is;
+
+            try {
+
+                String query = String.format("telf=%s", URLEncoder.encode(param, charset));
+
+                try {
+
+                    url = new URL(resource + "?" + query);
+
+                    try {
+
+                        conn = (HttpURLConnection) url.openConnection();
+                        conn.setReadTimeout(10000);
+                        conn.setConnectTimeout(15000);
+
+                        try {
+
+                            conn.setRequestMethod("GET");
+                            conn.setDoInput(true);
+
+                            try {
+
+                                conn.connect();
+                                int response = conn.getResponseCode();
+                                is = conn.getInputStream();
+
+                                //Convert the InputStream into a string
+                                Reader reader = new InputStreamReader(is, "UTF-8");
+                                char[] buffer = new char[12];
+                                reader.read(buffer);
+                                String result = new String(buffer);
+
+                                Toast toast = Toast.makeText(getApplicationContext(), result, Toast.LENGTH_LONG);
+                                toast.show();
+
+                            }  catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                        } catch (ProtocolException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    } catch (IOException e){
+                        throw new RuntimeException(e);
+                    }
+
+                } catch (MalformedURLException e){
+                    throw new RuntimeException(e);
+                }
+
+            } catch (UnsupportedEncodingException e){
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        public int returnUserStatus() {
+            return status;
         }
 
     }
