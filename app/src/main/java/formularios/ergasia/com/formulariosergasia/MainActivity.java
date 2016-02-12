@@ -5,21 +5,18 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.text.TextUtils;
-import android.widget.Toast;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,8 +27,6 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,6 +35,10 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //Compatibility tweak for Android versions >= 3.0
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
         //Declaring main_activity.xml objects to play with them later
         final TextView message = (TextView) findViewById(R.id.textView);
@@ -66,11 +65,11 @@ public class MainActivity extends AppCompatActivity {
 
                 message.setText("Por favor, conecte la tarjeta SIM al móvil o desactive el modo avión y reinicie la aplicación para continuar.");
 
-            //How sad... the user's SIM card does not store its phone number... nor is it saved in the app's preferences
+                //How sad... the user's SIM card does not store its phone number... nor is it saved in the app's preferences
             } else if (numtelf.equals("")) {
 
                 message.setText("Ha sido imposible obtener el número de teléfono de la SIM de su móvil. " +
-                            "Por favor, introdúzcalo para continuar:");
+                        "Por favor, introdúzcalo para continuar:");
 
                 input.setVisibility(View.VISIBLE);
                 submit.setVisibility(View.VISIBLE);
@@ -85,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
                             if (user.returnUserStatus() == 0) {
 
                                 message.setText("Su número de teléfono no está registrado en la base de datos de Ergasia. " +
-                                            "Por favor, contacte con Ergasia e inténtelo de nuevo más tarde.");
+                                        "Por favor, contacte con Ergasia e inténtelo de nuevo más tarde.");
 
                             } else if (user.returnUserStatus() == 1) {
 
@@ -96,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-            //Wow!! We either got the telephone number from the SIM card or from the preferences!
+                //Wow!! We either got the telephone number from the SIM card or from the preferences!
             } else {
 
                 user.assignPhoneNumber(numtelf, settings);
@@ -105,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
                 if (user.returnUserStatus() == 0) {
 
                     message.setText("Su número de teléfono no está registrado en la base de datos de Ergasia. " +
-                                "Por favor, contacte con Ergasia e inténtelo de nuevo más adelante.");
+                            "Por favor, contacte con Ergasia e inténtelo de nuevo más adelante.");
 
                 } else if (user.returnUserStatus() == 1) {
 
@@ -114,11 +113,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-        //Wait! Internet connectivity is needed to run this application.
+            //Wait! Internet connectivity is needed to run this application.
         } else {
 
             message.setText("Para que la aplicación pueda operar correctamente, debe estar conectado a Internet (vía Wifi o red de datos). " +
-                        "Por favor, conéctese a Internet y reinicie la aplicación.");
+                    "Por favor, conéctese a Internet y reinicie la aplicación.");
         }
 
     }
