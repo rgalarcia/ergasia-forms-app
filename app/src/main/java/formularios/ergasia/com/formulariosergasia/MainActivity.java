@@ -1,7 +1,10 @@
 package formularios.ergasia.com.formulariosergasia;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
@@ -13,6 +16,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.text.TextUtils;
 import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,34 +42,34 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //Declaring main_activity.xml objects to play with them later
-        TextView message = (TextView)findViewById(R.id.textView);
-        final EditText input = (EditText)findViewById(R.id.editText);
-        Button submit = (Button)findViewById(R.id.button);
+        final TextView message = (TextView) findViewById(R.id.textView);
+        final EditText input = (EditText) findViewById(R.id.editText);
+        Button submit = (Button) findViewById(R.id.button);
 
         //Hide input EditText and sumbit Button (they may not be useful at all)
         input.setVisibility(View.INVISIBLE);
         submit.setVisibility(View.INVISIBLE);
 
         //First of all, let's check that the app user is connected to Internet
-        ConnectivityManager conManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager conManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = conManager.getActiveNetworkInfo();
 
-        if (netInfo != null && netInfo.isConnected())
-        {
+        if (netInfo != null && netInfo.isConnected()) {
+
             //Let's instantiate an object from the class ErgasiaUser
             final ErgasiaUser user = new ErgasiaUser();
             user.assignPhoneNumber(null);
             String numtelf = user.returnPhoneNumber();
 
-            if (numtelf == null)
-            {
+            if (numtelf == null) {
+
                 message.setText("Por favor, conecte la tarjeta SIM al móvil o desactive el modo avión y reinicie la aplicación para continuar.");
-            }
-            //How sad... the user's SIM card does not store its phone number
-            else if (numtelf.equals(""))
-            {
+
+            //How sad... the user's SIM card does not store its phone number... nor is it saved in the app's preferences
+            } else if (numtelf.equals("")) {
+
                 message.setText("Ha sido imposible obtener el número de teléfono de la SIM de su móvil. " +
-                        "Por favor, introdúzcalo para continuar:");
+                            "Por favor, introdúzcalo para continuar:");
 
                 input.setVisibility(View.VISIBLE);
                 submit.setVisibility(View.VISIBLE);
@@ -74,22 +80,48 @@ public class MainActivity extends AppCompatActivity {
                         if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true) {
                             user.assignPhoneNumber(input.getText().toString());
                             user.checkUserStatus();
+
+                            if (user.returnUserStatus() == 0) {
+
+                                message.setText("Su número de teléfono no está registrado en la base de datos de Ergasia. " +
+                                            "Por favor, contacte con Ergasia e inténtelo de nuevo más tarde.");
+
+                            } else if (user.returnUserStatus() == 1) {
+
+                                message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
+                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+user.returnPhoneNumber()));
+                                startActivity(browserIntent);
+
+                            }
                         }
                     }
                 });
 
-            }
-            //Wow!! We got the telephone number from the SIM card!
-            else
-            {
-                //message.setText(numtelf);
+            //Wow!! We either got the telephone number from the SIM card or from the preferences!
+            } else {
+
                 user.assignPhoneNumber(numtelf);
                 user.checkUserStatus();
+
+                if (user.returnUserStatus() == 0) {
+
+                    message.setText("Su número de teléfono no está registrado en la base de datos de Ergasia. " +
+                                "Por favor, contacte con Ergasia e inténtelo de nuevo más adelante.");
+
+                } else if (user.returnUserStatus() == 1) {
+
+                    message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+user.returnPhoneNumber()));
+                    startActivity(browserIntent);
+
+                }
             }
-        }
-        else {
+
+        //Wait! Internet connectivity is needed to run this application.
+        } else {
+
             message.setText("Para que la aplicación pueda operar correctamente, debe estar conectado a Internet (vía Wifi o red de datos). " +
-                    "Por favor, conéctese a Internet y reinicie la aplicación.");
+                        "Por favor, conéctese a Internet y reinicie la aplicación.");
         }
 
     }
@@ -104,13 +136,29 @@ public class MainActivity extends AppCompatActivity {
         //Assigns a phone number to the Ergasia User
         public void assignPhoneNumber(String inputnum) {
 
-            if (inputnum == null) {
-                TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                phonenum = tm.getLine1Number();
-            }
-            else
-            {
-                phonenum = inputnum;
+            SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
+            String settings_NumTelf = settings.getString("ErgasiaUserPhone", "").toString();
+
+            if (settings_NumTelf == null || settings_NumTelf.equals("")) {
+
+                if (inputnum == null) {
+
+                    TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+                    phonenum = tm.getLine1Number();
+
+                } else {
+
+                    phonenum = inputnum;
+                    SharedPreferences.Editor editor = settings.edit();
+                    editor.putString("ErgasiaUserPhone", inputnum.toString());
+                    editor.commit();
+
+                }
+
+            } else {
+
+                phonenum = settings_NumTelf;
+
             }
 
         }
@@ -158,12 +206,19 @@ public class MainActivity extends AppCompatActivity {
 
                                 //Convert the InputStream into a string
                                 Reader reader = new InputStreamReader(is, "UTF-8");
-                                char[] buffer = new char[12];
+                                char[] buffer = new char[13];
                                 reader.read(buffer);
                                 String result = new String(buffer);
 
-                                Toast toast = Toast.makeText(getApplicationContext(), result, Toast.LENGTH_LONG);
-                                toast.show();
+
+                                try {
+
+                                    JSONObject parentObject = new JSONObject(result);
+                                    status = Integer.parseInt(parentObject.getString("result"));
+
+                                } catch (JSONException e){
+                                    throw new RuntimeException(e);
+                                }
 
                             }  catch (IOException e) {
                                 throw new RuntimeException(e);
