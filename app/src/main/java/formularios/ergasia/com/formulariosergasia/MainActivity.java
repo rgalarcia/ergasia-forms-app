@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        final Context mContext = this;
 
         //Compatibility tweak for Android versions >= 3.0
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -56,9 +57,9 @@ public class MainActivity extends AppCompatActivity {
         if (netInfo != null && netInfo.isConnected()) {
 
             //Let's instantiate an object from the class ErgasiaUser
-            final SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
+
             final ErgasiaUser user = new ErgasiaUser();
-            user.assignPhoneNumber(null, settings);
+            user.assignPhoneNumber(null);
             String numtelf = user.returnPhoneNumber();
 
             if (numtelf == null) {
@@ -78,8 +79,8 @@ public class MainActivity extends AppCompatActivity {
                 submit.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
                         if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true) {
-                            user.assignPhoneNumber(input.getText().toString(), settings);
-                            user.checkUserStatus(settings);
+                           /* user.assignPhoneNumber(input.getText().toString());
+                            user.checkUserStatus();
 
                             if (user.returnUserStatus() == 0) {
 
@@ -91,6 +92,9 @@ public class MainActivity extends AppCompatActivity {
                                 user.sendUserToForm(message, input, submit);
 
                             }
+                            */
+                            Toast toast = Toast.makeText(getApplicationContext(),input.getText().toString(),Toast.LENGTH_LONG);
+                            toast.show();
                         }
                     }
                 });
@@ -98,8 +102,8 @@ public class MainActivity extends AppCompatActivity {
                 //Wow!! We either got the telephone number from the SIM card or from the preferences!
             } else {
 
-                user.assignPhoneNumber(numtelf, settings);
-                user.checkUserStatus(settings);
+                user.assignPhoneNumber(numtelf);
+                user.checkUserStatus();
 
                 if (user.returnUserStatus() == 0) {
 
@@ -130,8 +134,9 @@ public class MainActivity extends AppCompatActivity {
         private int form;
 
         //Assigns a phone number to the Ergasia User
-        public void assignPhoneNumber(String inputnum, SharedPreferences settings) {
+        public void assignPhoneNumber(String inputnum) {
 
+            SharedPreferences settings = getApplicationContext().getSharedPreferences("ErgasiaUserInfo", 0);
             String settings_NumTelf = settings.getString("ErgasiaUserPhone", "").toString();
 
             if (settings_NumTelf == null || settings_NumTelf.equals("")) {
@@ -139,11 +144,14 @@ public class MainActivity extends AppCompatActivity {
                 if (inputnum == null) {
 
                     TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                    phonenum = tm.getLine1Number();
+                    phonenum = "";//tm.getLine1Number();
 
                 } else {
 
                     phonenum = inputnum;
+                    SharedPreferences.Editor editor = settings.edit();
+                    editor.putString("ErgasiaUserPhone", inputnum.toString());
+                    editor.commit();
 
                 }
 
@@ -161,9 +169,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //Checks the status of an Ergasia User
-        public void checkUserStatus(SharedPreferences settings) {
+        public void checkUserStatus() {
 
-            String resource = "http://192.168.1.40/usr/check_user.php";
+            String resource = "http://192.168.1.33/usr/check_user.php";
             String charset = "UTF-8";
             String param = phonenum;
 
@@ -208,34 +216,40 @@ public class MainActivity extends AppCompatActivity {
                                     JSONObject parentObject = new JSONObject(result);
                                     status = Integer.parseInt(parentObject.getString("result"));
 
-                                    if (status == 1) {
-                                        SharedPreferences.Editor editor = settings.edit();
-                                        editor.putString("ErgasiaUserPhone", phonenum.toString());
-                                        editor.commit();
-                                    }
-
                                 } catch (JSONException e){
-                                    throw new RuntimeException(e);
+                                    // throw new RuntimeException(e);
+                                    Toast toast=Toast.makeText(getApplicationContext(),"json error",Toast.LENGTH_LONG);
+                                    toast.show();
                                 }
 
                             }  catch (IOException e) {
-                                throw new RuntimeException(e);
+                                //throw new RuntimeException(e);
+                                Toast toast=Toast.makeText(getApplicationContext(),"connenction error",Toast.LENGTH_LONG);
+                                toast.show();
                             }
 
                         } catch (ProtocolException e) {
-                            throw new RuntimeException(e);
+                            //throw new RuntimeException(e);
+                            Toast toast=Toast.makeText(getApplicationContext(),"request method error",Toast.LENGTH_LONG);
+                            toast.show();
                         }
 
                     } catch (IOException e){
-                        throw new RuntimeException(e);
+                        //throw new RuntimeException(e);
+                        Toast toast=Toast.makeText(getApplicationContext(),"opening connection error",Toast.LENGTH_LONG);
+                        toast.show();
                     }
 
                 } catch (MalformedURLException e){
-                    throw new RuntimeException(e);
+                    //throw new RuntimeException(e);
+                    Toast toast=Toast.makeText(getApplicationContext(),"Malformed URL error",Toast.LENGTH_LONG);
+                    toast.show();
                 }
 
             } catch (UnsupportedEncodingException e){
-                throw new RuntimeException(e);
+                //throw new RuntimeException(e);
+                Toast toast=Toast.makeText(getApplicationContext(),"Unsupported encoding error",Toast.LENGTH_LONG);
+                toast.show();
             }
 
         }
@@ -248,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
             message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
             input.setVisibility(View.INVISIBLE);
             submit.setVisibility(View.INVISIBLE);
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+phonenum));
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.33/usr/get_form.php?telf="+phonenum));
             startActivity(browserIntent);
         }
 
