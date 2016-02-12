@@ -57,8 +57,9 @@ public class MainActivity extends AppCompatActivity {
         if (netInfo != null && netInfo.isConnected()) {
 
             //Let's instantiate an object from the class ErgasiaUser
+            final SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
             final ErgasiaUser user = new ErgasiaUser();
-            user.assignPhoneNumber(null);
+            user.assignPhoneNumber(null, settings);
             String numtelf = user.returnPhoneNumber();
 
             if (numtelf == null) {
@@ -78,8 +79,8 @@ public class MainActivity extends AppCompatActivity {
                 submit.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
                         if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true) {
-                            user.assignPhoneNumber(input.getText().toString());
-                            user.checkUserStatus();
+                            user.assignPhoneNumber(input.getText().toString(), settings);
+                            user.checkUserStatus(settings);
 
                             if (user.returnUserStatus() == 0) {
 
@@ -98,8 +99,8 @@ public class MainActivity extends AppCompatActivity {
             //Wow!! We either got the telephone number from the SIM card or from the preferences!
             } else {
 
-                user.assignPhoneNumber(numtelf);
-                user.checkUserStatus();
+                user.assignPhoneNumber(numtelf, settings);
+                user.checkUserStatus(settings);
 
                 if (user.returnUserStatus() == 0) {
 
@@ -130,9 +131,8 @@ public class MainActivity extends AppCompatActivity {
         private int form;
 
         //Assigns a phone number to the Ergasia User
-        public void assignPhoneNumber(String inputnum) {
+        public void assignPhoneNumber(String inputnum, SharedPreferences settings) {
 
-            SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
             String settings_NumTelf = settings.getString("ErgasiaUserPhone", "").toString();
 
             if (settings_NumTelf == null || settings_NumTelf.equals("")) {
@@ -145,9 +145,6 @@ public class MainActivity extends AppCompatActivity {
                 } else {
 
                     phonenum = inputnum;
-                    SharedPreferences.Editor editor = settings.edit();
-                    editor.putString("ErgasiaUserPhone", inputnum.toString());
-                    editor.commit();
 
                 }
 
@@ -165,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //Checks the status of an Ergasia User
-        public void checkUserStatus() {
+        public void checkUserStatus(SharedPreferences settings) {
 
             String resource = "http://192.168.1.40/usr/check_user.php";
             String charset = "UTF-8";
@@ -211,6 +208,12 @@ public class MainActivity extends AppCompatActivity {
 
                                     JSONObject parentObject = new JSONObject(result);
                                     status = Integer.parseInt(parentObject.getString("result"));
+
+                                    if (status == 1) {
+                                        SharedPreferences.Editor editor = settings.edit();
+                                        editor.putString("ErgasiaUserPhone", phonenum.toString());
+                                        editor.commit();
+                                    }
 
                                 } catch (JSONException e){
                                     throw new RuntimeException(e);
