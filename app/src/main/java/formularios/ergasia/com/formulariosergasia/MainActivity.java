@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         //Declaring main_activity.xml objects to play with them later
         final TextView message = (TextView) findViewById(R.id.textView);
         final EditText input = (EditText) findViewById(R.id.editText);
-        Button submit = (Button) findViewById(R.id.button);
+        final Button submit = (Button) findViewById(R.id.button);
 
         //Hide input EditText and sumbit Button (they may not be useful at all)
         input.setVisibility(View.INVISIBLE);
@@ -88,9 +88,7 @@ public class MainActivity extends AppCompatActivity {
 
                             } else if (user.returnUserStatus() == 1) {
 
-                                message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
-                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+user.returnPhoneNumber()));
-                                startActivity(browserIntent);
+                                user.sendUserToForm(message, input, submit);
 
                             }
                         }
@@ -110,9 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
                 } else if (user.returnUserStatus() == 1) {
 
-                    message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+user.returnPhoneNumber()));
-                    startActivity(browserIntent);
+                    user.sendUserToForm(message, input, submit);
 
                 }
             }
@@ -244,6 +240,14 @@ public class MainActivity extends AppCompatActivity {
 
         public int returnUserStatus() {
             return status;
+        }
+
+        public void sendUserToForm(TextView message, EditText input, Button submit) {
+            message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
+            input.setVisibility(View.INVISIBLE);
+            submit.setVisibility(View.INVISIBLE);
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+phonenum));
+            startActivity(browserIntent);
         }
 
     }
