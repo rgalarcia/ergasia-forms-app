@@ -57,20 +57,19 @@ public class MainActivity extends AppCompatActivity {
         if (netInfo != null && netInfo.isConnected()) {
 
             //Let's instantiate an object from the class ErgasiaUser
-            final SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
             final ErgasiaUser user = new ErgasiaUser();
-            user.assignPhoneNumber(null, settings);
+            user.assignPhoneNumber(null);
             String numtelf = user.returnPhoneNumber();
 
             if (numtelf == null) {
 
                 message.setText("Por favor, conecte la tarjeta SIM al móvil o desactive el modo avión y reinicie la aplicación para continuar.");
 
-            //How sad... the user's SIM card does not store its phone number... nor is it saved in the app's preferences
+                //How sad... the user's SIM card does not store its phone number... nor is it saved in the app's preferences
             } else if (numtelf.equals("")) {
 
                 message.setText("Ha sido imposible obtener el número de teléfono de la SIM de su móvil. " +
-                            "Por favor, introdúzcalo para continuar:");
+                        "Por favor, introdúzcalo para continuar:");
 
                 input.setVisibility(View.VISIBLE);
                 submit.setVisibility(View.VISIBLE);
@@ -79,13 +78,13 @@ public class MainActivity extends AppCompatActivity {
                 submit.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
                         if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true) {
-                            user.assignPhoneNumber(input.getText().toString(), settings);
-                            user.checkUserStatus(settings);
+                            user.assignPhoneNumber(input.getText().toString());
+                            user.checkUserStatus();
 
                             if (user.returnUserStatus() == 0) {
 
                                 message.setText("Su número de teléfono no está registrado en la base de datos de Ergasia. " +
-                                            "Por favor, contacte con Ergasia e inténtelo de nuevo más tarde.");
+                                        "Por favor, contacte con Ergasia e inténtelo de nuevo más tarde.");
 
                             } else if (user.returnUserStatus() == 1) {
 
@@ -96,16 +95,16 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-            //Wow!! We either got the telephone number from the SIM card or from the preferences!
+                //Wow!! We either got the telephone number from the SIM card or from the preferences!
             } else {
 
-                user.assignPhoneNumber(numtelf, settings);
-                user.checkUserStatus(settings);
+                user.assignPhoneNumber(numtelf);
+                user.checkUserStatus();
 
                 if (user.returnUserStatus() == 0) {
 
                     message.setText("Su número de teléfono no está registrado en la base de datos de Ergasia. " +
-                                "Por favor, contacte con Ergasia e inténtelo de nuevo más adelante.");
+                            "Por favor, contacte con Ergasia e inténtelo de nuevo más adelante.");
 
                 } else if (user.returnUserStatus() == 1) {
 
@@ -114,11 +113,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-        //Wait! Internet connectivity is needed to run this application.
+            //Wait! Internet connectivity is needed to run this application.
         } else {
 
             message.setText("Para que la aplicación pueda operar correctamente, debe estar conectado a Internet (vía Wifi o red de datos). " +
-                        "Por favor, conéctese a Internet y reinicie la aplicación.");
+                    "Por favor, conéctese a Internet y reinicie la aplicación.");
         }
 
     }
@@ -131,8 +130,9 @@ public class MainActivity extends AppCompatActivity {
         private int form;
 
         //Assigns a phone number to the Ergasia User
-        public void assignPhoneNumber(String inputnum, SharedPreferences settings) {
+        public void assignPhoneNumber(String inputnum) {
 
+            SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
             String settings_NumTelf = settings.getString("ErgasiaUserPhone", "").toString();
 
             if (settings_NumTelf == null || settings_NumTelf.equals("")) {
@@ -145,6 +145,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
 
                     phonenum = inputnum;
+                    SharedPreferences.Editor editor = settings.edit();
+                    editor.putString("ErgasiaUserPhone", inputnum.toString());
+                    editor.commit();
 
                 }
 
@@ -162,9 +165,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //Checks the status of an Ergasia User
-        public void checkUserStatus(SharedPreferences settings) {
+        public void checkUserStatus() {
 
-            String resource = "http://192.168.1.40/usr/check_user.php";
+            String resource = "http://192.168.1.33/usr/check_user.php";
             String charset = "UTF-8";
             String param = phonenum;
 
@@ -209,34 +212,40 @@ public class MainActivity extends AppCompatActivity {
                                     JSONObject parentObject = new JSONObject(result);
                                     status = Integer.parseInt(parentObject.getString("result"));
 
-                                    if (status == 1) {
-                                        SharedPreferences.Editor editor = settings.edit();
-                                        editor.putString("ErgasiaUserPhone", phonenum.toString());
-                                        editor.commit();
-                                    }
-
                                 } catch (JSONException e){
-                                    throw new RuntimeException(e);
+                                    // throw new RuntimeException(e);
+                                    Toast toast=Toast.makeText(getApplicationContext(),"json error",Toast.LENGTH_LONG);
+                                    toast.show();
                                 }
 
                             }  catch (IOException e) {
-                                throw new RuntimeException(e);
+                                //throw new RuntimeException(e);
+                                Toast toast=Toast.makeText(getApplicationContext(),"connenction error",Toast.LENGTH_LONG);
+                                toast.show();
                             }
 
                         } catch (ProtocolException e) {
-                            throw new RuntimeException(e);
+                            //throw new RuntimeException(e);
+                            Toast toast=Toast.makeText(getApplicationContext(),"request method error",Toast.LENGTH_LONG);
+                            toast.show();
                         }
 
                     } catch (IOException e){
-                        throw new RuntimeException(e);
+                        //throw new RuntimeException(e);
+                        Toast toast=Toast.makeText(getApplicationContext(),"opening connection error",Toast.LENGTH_LONG);
+                        toast.show();
                     }
 
                 } catch (MalformedURLException e){
-                    throw new RuntimeException(e);
+                    //throw new RuntimeException(e);
+                    Toast toast=Toast.makeText(getApplicationContext(),"Malformed URL error",Toast.LENGTH_LONG);
+                    toast.show();
                 }
 
             } catch (UnsupportedEncodingException e){
-                throw new RuntimeException(e);
+                //throw new RuntimeException(e);
+                Toast toast=Toast.makeText(getApplicationContext(),"Unsupported encoding error",Toast.LENGTH_LONG);
+                toast.show();
             }
 
         }
@@ -249,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
             message.setText("Formulario cargado correctamente. Para volverlo a cargar, reinicie la aplicación.");
             input.setVisibility(View.INVISIBLE);
             submit.setVisibility(View.INVISIBLE);
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.40/usr/get_form.php?telf="+phonenum));
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://192.168.1.33/usr/get_form.php?telf="+phonenum));
             startActivity(browserIntent);
         }
 
