@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        final Context mContext = this;
 
         //Declaring main_activity.xml objects to play with them later
         final TextView message = (TextView) findViewById(R.id.textView);
@@ -57,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
         if (netInfo != null && netInfo.isConnected()) {
 
             //Let's instantiate an object from the class ErgasiaUser
+
             final ErgasiaUser user = new ErgasiaUser();
             user.assignPhoneNumber(null);
             String numtelf = user.returnPhoneNumber();
@@ -78,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                 submit.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
                         if (input.getText().toString() != null && TextUtils.isDigitsOnly(input.getText().toString()) == true) {
-                            user.assignPhoneNumber(input.getText().toString());
+                           /* user.assignPhoneNumber(input.getText().toString());
                             user.checkUserStatus();
 
                             if (user.returnUserStatus() == 0) {
@@ -91,6 +93,9 @@ public class MainActivity extends AppCompatActivity {
                                 user.sendUserToForm(message, input, submit);
 
                             }
+                            */
+                            Toast toast = Toast.makeText(getApplicationContext(),input.getText().toString(),Toast.LENGTH_LONG);
+                            toast.show();
                         }
                     }
                 });
@@ -132,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
         //Assigns a phone number to the Ergasia User
         public void assignPhoneNumber(String inputnum) {
 
-            SharedPreferences settings = getSharedPreferences("ErgasiaUserInfo", 0);
+            SharedPreferences settings = getApplicationContext().getSharedPreferences("ErgasiaUserInfo", 0);
             String settings_NumTelf = settings.getString("ErgasiaUserPhone", "").toString();
 
             if (settings_NumTelf == null || settings_NumTelf.equals("")) {
@@ -140,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 if (inputnum == null) {
 
                     TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                    phonenum = tm.getLine1Number();
+                    phonenum = "";//tm.getLine1Number();
 
                 } else {
 
